@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Team Voting App</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            text-align: center;
+        }
+        h1 {
+            margin-bottom: 30px;
+        }
+        .voting-container {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 40px;
+        }
+        .team-box {
+            width: 45%;
+            padding: 30px;
+            border-radius: 8px;
+            transition: background-color 0.3s ease;
+            cursor: pointer;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        .team-box h2 {
+            margin-top: 0;
+        }
+        .team-a {
+            border: 2px solid #4CAF50;
+        }
+        .team-b {
+            border: 2px solid #f44336;
+        }
+        .selected-a {
+            background-color: #4CAF50;
+            color: white;
+        }
+        .selected-b {
+            background-color: #f44336;
+            color: white;
+        }
+        .vote-button {
+            padding: 12px 24px;
+            background-color: #2196F3;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 20px;
+            transition: all 0.3s ease;
+        }
+        .vote-button:hover {
+            background-color: #0b7dda;
+        }
+        .vote-button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        .results {
+            margin-top: 40px;
+            padding: 20px;
+            border-radius: 8px;
+            background-color: #f5f5f5;
+        }
+        .reset-button {
+            padding: 10px 20px;
+            background-color: #f44336;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-top: 20px;
+        }
+        .reset-button:hover {
+            background-color: #d32f2f;
+        }
+        .loading {
+            display: none;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Team Voting App</h1>
+    
+    <div class="voting-container">
+        <div class="team-box team-a" id="team-a">
+            <h2>Team A</h2>
+            <p>Click to select Team A</p>
+        </div>
+        <div class="team-box team-b" id="team-b">
+            <h2>Team B</h2>
+            <p>Click to select Team B</p>
+        </div>
+    </div>
+    
+    <button class="vote-button" id="vote-button" disabled>Cast Your Vote</button>
+    
+    <div class="loading" id="loading">Processing your vote...</div>
+    
+    <div class="results" id="results">
+        <h2>Voting Results</h2>
+        <p>Team A: <span id="team-a-count">0</span> votes</p>
+        <p>Team B: <span id="team-b-count">0</span> votes</p>
+        <button class="reset-button" id="reset-button">Reset All Votes</button>
+    </div>
+
+    <script>
+        // API base URL - change this to your FastAPI server URL
+        const API_URL = 'http://localhost:8000';
+        
+        // DOM elements
+        const teamABox = document.getElementById('team-a');
+        const teamBBox = document.getElementById('team-b');
+        const voteButton = document.getElementById('vote-button');
+        const loadingMessage = document.getElementById('loading');
+        const teamACount = document.getElementById('team-a-count');
+        const teamBCount = document.getElementById('team-b-count');
+        const resetButton = document.getElementById('reset-button');
+        
+        // State management
+        let selectedTeam = null;
+        
+        // Update results from the server
+        async function updateResults() {
+            try {
+                const response = await fetch(`${API_URL}/results/`);
+                if (!response.ok) throw new Error('Failed to fetch results');
+                
+                const data = await response.json();
+                teamACount.textContent = data.team_a;
+                teamBCount.textContent = data.team_b;
+            } catch (error) {
+                console.error('Error fetching results:', error);
+                alert('Failed to fetch voting results. Please try again.');
+            }
+        }
+        
+        // Initialize the app
+        function init() {
+            updateResults();
+            
+            // Team selection
+            teamABox.addEventListener('click', () => {
+                selectedTeam = 'A';
+                teamABox.classList.add('selected-a');
+                teamBBox.classList.remove('selected-b');
+                voteButton.disabled = false;
+            });
+            
+            teamBBox.addEventListener('click', () => {
+                selectedTeam = 'B';
+                teamBBox.classList.add('selected-b');
+                teamABox.classList.remove('selected-a');
+                voteButton.disabled = false;
+            });
+            
+            // Vote submission
+            voteButton.addEventListener('click', async () => {
+                if (!selectedTeam) return;
+                
+                loadingMessage.style.display = 'block';
+                voteButton.disabled = true;
+                
+                try {
+                    const response = await fetch(`${API_URL}/vote/`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ team: selectedTeam })
+                    });
+                    
+                    if (!response.ok) throw new Error('Failed to submit vote');
+                    
+                    // Reset team selection
+                    selectedTeam = null;
+                    teamABox.classList.remove('selected-a');
+                    teamBBox.classList.remove('selected-b');
+                    
+                    // Update the results
+                    await updateResults();
+                    
+                } catch (error) {
+                    console.error('Error submitting vote:', error);
+                    alert('Failed to submit your vote. Please try again.');
+                } finally {
+                    loadingMessage.style.display = 'none';
+                    voteButton.disabled = selectedTeam === null;
+                }
+            });
+            
+            // Reset votes
+            resetButton.addEventListener('click', async () => {
+                const confirmed = confirm('Are you sure you want to reset all votes?');
+                if (!confirmed) return;
+                
+                try {
+                    const response = await fetch(`${API_URL}/reset/`, {
+                        method: 'POST'
+                    });
+                    
+                    if (!response.ok) throw new Error('Failed to reset votes');
+                    
+                    // Update the results
+                    await updateResults();
+                    
+                    alert('All votes have been reset successfully!');
+                } catch (error) {
+                    console.error('Error resetting votes:', error);
+                    alert('Failed to reset votes. Please try again.');
+                }
+            });
+        }
+        
+        // Start the app when DOM is loaded
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
