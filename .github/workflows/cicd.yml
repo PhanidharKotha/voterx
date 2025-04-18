@@ -18,30 +18,29 @@ jobs:
 
       - name: Login to AWS ECR
         uses: aws-actions/amazon-ecr-login@v1
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          region: us-east-1
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: us-east-2
 
       - name: Build and push backend image
         run: |
           docker build -t voterx-backend ./backend
           docker tag voterx-backend:latest ${{ secrets.ECR_BACKEND_URI }}:latest
           docker push ${{ secrets.ECR_BACKEND_URI }}:latest
-        env:
-          ECR_BACKEND_URI: 174771279326.dkr.ecr.us-east-2.amazonaws.com/voterx-backend
 
       - name: Build and push frontend image
         run: |
           docker build -t voterx-frontend ./frontend
           docker tag voterx-frontend:latest ${{ secrets.ECR_FRONTEND_URI }}:latest
           docker push ${{ secrets.ECR_FRONTEND_URI }}:latest
-        env:
-          ECR_FRONTEND_URI: 174771279326.dkr.ecr.us-east-2.amazonaws.com/voterx-frontend
 
-      - name: Update ECS service
+      - name: Deploy to ECS
         run: |
-          aws ecs update-service --cluster voterx-cluster --service voterx-service --force-new-deployment
+          aws ecs update-service \
+            --cluster voterx-cluster \
+            --service voterx-service \
+            --force-new-deployment
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
