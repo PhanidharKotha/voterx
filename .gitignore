@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+venv/
+*.egg-info/
+.pytest_cache/
+
+# Docker
+*.log
+postgres_data/
+
+# Environment
+.env
+*.env
+
+# IDE
+.vscode/
+*.code-workspace
+
+# Miscellaneous
+*.DS_Store
+*.bak
+*.swp
