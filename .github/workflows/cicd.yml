@@ -23,6 +23,13 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_REGION: us-east-2
 
+      - name: Validate ECR secrets
+        run: |
+          if [ -z "${{ secrets.ECR_BACKEND_URI }}" ] || [ -z "${{ secrets.ECR_FRONTEND_URI }}" ]; then
+            echo "❌ ECR URI secrets not configured"
+            exit 1
+          fi
+
       - name: Build and push backend image
         run: |
           docker build -t voterx-backend ./backend
