@@ -5,13 +5,18 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from pydantic import BaseModel
 import os
+from dotenv import load_dotenv
+
+# Load .env file
+load_dotenv()
 
 app = FastAPI()
 
 # Enable CORS to allow frontend requests
+frontend_origin = os.getenv("FRONTEND_ORIGIN", "http://localhost:8080")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:8080"],  # Frontend URL
+    allow_origins=[frontend_origin],  # Use environment variable
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
