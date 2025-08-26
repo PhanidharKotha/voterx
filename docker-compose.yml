@@ -1,30 +1,32 @@
 version: '3.8'
+
 services:
   db:
-    image: postgres:16-alpine
+    image: postgres:15
     environment:
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - POSTGRES_DB=${POSTGRES_DB}
+      POSTGRES_USER: voterx
+      POSTGRES_PASSWORD: strongpassword123
+      POSTGRES_DB: voterx
     ports:
-      - "5432:5432"
+      - "5433:5432"  # Host:Container
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD-SHELL", "pg_isready -U voterx"]
       interval: 5s
       timeout: 5s
       retries: 5
     networks:
       - voterx-network
+
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
     ports:
-      - "8000:8000"
+      - "8001:8000"  # Avoids port 8000 conflict
     environment:
-      - DATABASE_URL=${DATABASE_URL}
+      DATABASE_URL: postgresql://voterx:strongpassword123@db:5432/voterx
     depends_on:
       db:
         condition: service_healthy
@@ -32,6 +34,7 @@ services:
       - ./backend:/app
     networks:
       - voterx-network
+
   frontend:
     build:
       context: ./frontend
@@ -40,8 +43,10 @@ services:
       - "8080:80"
     networks:
       - voterx-network
+
 volumes:
   postgres_data:
+
 networks:
   voterx-network:
     driver: bridge
